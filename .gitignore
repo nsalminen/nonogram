@@ -11,3 +11,7 @@
 *.lai
 *.la
 *.a
+/NonoTest/dist/
+/NonoTest/build/
+/MessingAround/build/
+/MessingAround/dist/
