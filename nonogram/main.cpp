@@ -76,13 +76,14 @@ private:
     int width, height;
     int percentage;
     bool grid[maxDimension][maxDimension];
-    int verticalValues[maxDimension][maxDimension / 2];
-    int horizontalValues[maxDimension / 2][maxDimension];
+    int horizontalValues[maxDimension][maxDimension];
+    int verticalValues[maxDimension][maxDimension];
 public:
     Cursor cursor;
     Nonogram();
     int getRandomNumber();
     void fillRandomly();
+    void countValues();
     void print();
     void changePercentage();
     void changeSize();
@@ -97,7 +98,7 @@ public:
 };
 
 Nonogram::Nonogram() {
-    width = 10;
+    width = 20;
     height = 10;
     percentage = 50;
 }
@@ -110,7 +111,43 @@ int Nonogram::getWidth() {
     return width;
 }
 
+void Nonogram::countValues() {
+    int counter = 0;
+    int indexCount = 0;
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            if (grid[i][j]) {
+                counter++;
+            } else {
+                horizontalValues[i][indexCount] = counter;
+                indexCount++;
+                counter = 0;
+            }
+        }
+        indexCount = 0;
+    }
+    counter = 0;
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            if (grid[j][i]) {
+                counter++;
+            } else {
+                verticalValues[i][indexCount] = counter;
+                indexCount++;
+                counter = 0;
+            }
+        }
+        indexCount = 0;
+        counter = 0;
+    }
+}
+
 void Nonogram::print() {
+//    verticalValues[0][0] = 1;
+//    verticalValues[0][1] = 2;
+//    verticalValues[1][0] = 3;
+//    verticalValues[1][1] = 4;
+//    verticalValues[1][2] = 5;
     printHorizontalLine();
     int i, j;
     for (i = 0; i < height; i++) {
@@ -130,8 +167,8 @@ void Nonogram::print() {
         }
         cout << " " << '+';
         j = 0;
-        while (verticalValues[i][j] > 0) {
-            cout << " " << verticalValues[i][j];
+        while (horizontalValues[i][j] > 0) {
+            cout << " " << horizontalValues[i][j];
             j++;
         }
         cout << endl;
@@ -141,10 +178,12 @@ void Nonogram::print() {
         if (!emptyLine(i)) {
             cout << " ";
             for (j = 0; j < width; j++) {
-                if (horizontalValues[j][i] > 0) {
-                    cout << ' ' << horizontalValues[j][i];
+                if (verticalValues[i][j] != 0) {
+                    cout << " " << verticalValues[i][j];
                 } else {
-                    cout << "  ";
+                    if (verticalValues[i][j] == 0) {
+                        cout << " ";
+                    }
                 }
             }
             cout << endl;
@@ -161,7 +200,7 @@ void Nonogram::printHorizontalLine() {
 
 bool Nonogram::emptyLine(int i) {
     for (int j = 0; j < width; j++) {
-        if (horizontalValues[j][i] > 0) {
+        if (verticalValues[j][i] > 0) {
             return false;
         }
     }
@@ -183,6 +222,7 @@ void Nonogram::toggle() {
     } else {
         grid[cursor.getY()][cursor.getX()] = true;
     }
+    countValues();
 }
 
 int Nonogram::getRandomNumber() {
@@ -213,14 +253,16 @@ void Nonogram::fillRandomly() {
 void Nonogram::resetValues() {
     int i = 0;
     int j = 0;
-    for (i = 0; i < height; i++) {
-        for (j = 0; j < width; j++) {
-            verticalValues[i][j] = 0;
+    for (i = 0; i < maxDimension; i++) {
+        for (j = 0; j < maxDimension; j++) {
+            horizontalValues[i][j] = 0;
         }
     }
-    for (i = 0; i < height; i++) {
-        for (j = 0; j < width; j++) {
-            horizontalValues[i][j] = 0;
+    //int verticalValues[maxDimension][maxDimension / 2];
+    //int horizontalValues[maxDimension / 2][maxDimension];
+    for (i = 0; i < maxDimension; i++) {
+        for (j = 0; j < maxDimension; j++) {
+            verticalValues[i][j] = 0;
         }
     }
 }
@@ -255,15 +297,15 @@ void Nonogram::submenu(char selection) {
 void mainMenu() {
     char selection;
     Nonogram nono;
-    cout << "      _   __" << endl;
-    cout << "     / | / /___  ____  ____  ____  _________  ____ ___" << endl;
-    cout << "    /  |/ / __ \\/ __ \\/ __ \\/ __ `/ ___/ __ `/ __ `__ \\ " << endl;
-    cout << "   / /|  / /_/ / / / / /_/ / /_/ / /  / /_/ / / / / / / " << endl;
-    cout << "  /_/ |_/\\____/_/ /_/\\____/\\__, /_/   \\__,_/_/ /_/ /_/ " << endl;
-    cout << "                          /____/ " << endl << endl;
     nono.clean();
     nono.resetValues();
     while (selection != 'q') {
+        cout << "      _   __" << endl;
+        cout << "     / | / /___  ____  ____  ____  _________  ____ ___" << endl;
+        cout << "    /  |/ / __ \\/ __ \\/ __ \\/ __ `/ ___/ __ `/ __ `__ \\ " << endl;
+        cout << "   / /|  / /_/ / / / / /_/ / /_/ / /  / /_/ / / / / / / " << endl;
+        cout << "  /_/ |_/\\____/_/ /_/\\____/\\__, /_/   \\__,_/_/ /_/ /_/ " << endl;
+        cout << "                          /____/ " << endl << endl;
         nono.print();
         cout << "[W]up | [A]left | [D]right | [S]down | [T]toggle node" << endl;
         cout << "[C]clean | [R]fill randomly | [M]more options | [Q]quit" << endl;
