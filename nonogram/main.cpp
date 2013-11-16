@@ -78,6 +78,7 @@ private:
     bool grid[maxDimension][maxDimension];
     int horizontalValues[maxDimension][maxDimension];
     int verticalValues[maxDimension][maxDimension];
+    bool autoCount;
 public:
     Cursor cursor;
     Nonogram();
@@ -95,12 +96,16 @@ public:
     void printHorizontalLine();
     int getHeight();
     int getWidth();
+    void readFile();
+    void writeFile();
+    bool checkLineValue(int i, char orientation);
 };
 
 Nonogram::Nonogram() {
     width = 20;
     height = 10;
     percentage = 50;
+    autoCount = true;
 }
 
 int Nonogram::getHeight() {
@@ -111,7 +116,56 @@ int Nonogram::getWidth() {
     return width;
 }
 
+bool Nonogram::checkLineValue(int i, char orientation) {
+    int counter = 0;
+    int indexCount = 0;
+    int tempValues[maxDimension] = {0};
+    switch (orientation) {
+        case 'h':
+            for (int j = 0; j < width; j++) {
+                if (grid[i][j]) {
+                    counter++;
+                } else {
+                    if (counter > 0) {
+                        tempValues[indexCount] = counter;
+                        counter = 0;
+                        indexCount++;
+                    }
+                }
+            }
+            for (int j = 0; j < width; j++) {
+                if (tempValues[j] != horizontalValues[i][j]) {
+                    return false;
+                }
+            }
+            return true;
+        case 'v':
+            for (int j = 0; j < height; j++) {
+                if (grid[j][i]) {
+                    counter++;
+                } else {
+                    if (counter > 0) {
+                        tempValues[indexCount] = counter;
+                        counter = 0;
+                        indexCount++;
+                    }
+                }
+            }
+            for (int j = 0; j < height; j++) {
+                //cout << "tempValues[" << j << "]: " << tempValues[j] << endl;
+                //cout << "verticalValues[" << i << "][" << j << "]: " << verticalValues[i][j] << endl;
+                if (tempValues[j] != verticalValues[i][j]) {
+                    return false;
+                }
+            }
+            return true;
+        default:
+            return false;
+    }
+}
+
 void Nonogram::countValues() {
+    resetValues();
     int counter = 0;
     int indexCount = 0;
     for (int i = 0; i < height; i++) {
@@ -119,35 +173,110 @@ void Nonogram::countValues() {
             if (grid[i][j]) {
                 counter++;
             } else {
-                horizontalValues[i][indexCount] = counter;
-                indexCount++;
-                counter = 0;
+                if (counter > 0) {
+                    horizontalValues[i][indexCount] = counter;
+                    counter = 0;
+                    indexCount++;
+                }
             }
         }
+        horizontalValues[i][indexCount] = counter;
+        counter = 0;
         indexCount = 0;
     }
-    counter = 0;
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
-            if (grid[j][i]) {
+    for (int j = 0; j < width; j++) {
+        for (int i = 0; i < height; i++) {
+            if (grid[i][j]) {
                 counter++;
             } else {
-                verticalValues[i][indexCount] = counter;
-                indexCount++;
-                counter = 0;
+                if (counter > 0) {
+                    verticalValues[j][indexCount] = counter;
+                    counter = 0;
+                    indexCount++;
+                }
             }
         }
-        indexCount = 0;
+        verticalValues[j][indexCount] = counter;
         counter = 0;
+        indexCount = 0;
+    }
+}
+
+void Nonogram::writeFile() {
+    ofstream output;
+    string outputFile;
+    cout << "Please enter the requested file path of the output file:" << endl;
+    cin >> outputFile;
+    output.open(outputFile.c_str(), ios::out);
+    output << height << ' ' << width << '\n';
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            if (horizontalValues[i][j] != 0) {
+                output << horizontalValues[i][j] << ' ';
+            }
+        }
+        output.put('0');
+        output.put('\n');
+    }
+    for (int i = 0; i < width; i++) {
+        for (int j = 0; j < height; j++) {
+            if (verticalValues[i][j] != 0) {
+                output << verticalValues[i][j] << ' ';
+            }
+        }
+        output.put('0');
+        output.put('\n');
+    }
+    output.close();
+}
+
+void Nonogram::readFile() {
+    ifstream input;
+    string inputFile;
+    int indexI = 0;
+    int indexJ = 0;
+    int currentLine = 0;
+    int number = 0;
+    cout << "Please enter the file path of the input file:" << endl;
+    cin >> inputFile;
+    input.open(inputFile.c_str(), ios::in);
+    if (input.fail()) {
+        cout << "Error while loading file. Returning to main menu." << endl;
+    }
+    input >> height;
+    input.ignore(1);
+    input >> width;
+    input.ignore(1);
+    clean();
+    autoCount = false;
+    resetValues();
+    while (!input.eof()) {
+        input >> number;
+        cout << "number: " << number << endl;
+        while (number != 0) {
+            if (currentLine < height) {
+                horizontalValues[indexI][indexJ] = number;
+            } else {
+                verticalValues[indexI][indexJ] = number;
+                cout << "Vertical number" << endl;
+            }
+            indexJ++;
+            input.ignore(1);
+            input >> number;
+            if (currentLine == height) {
+                indexI = 0;
+                verticalValues[indexI][indexJ] = number;
+            }
+        }
+        if (number == 0) {
+            currentLine++;
+            indexI++;
+            indexJ = 0;
+        }
     }
 }
 
 void Nonogram::print() {
-//    verticalValues[0][0] = 1;
-//    verticalValues[0][1] = 2;
-//    verticalValues[1][0] = 3;
-//    verticalValues[1][1] = 4;
-//    verticalValues[1][2] = 5;
     printHorizontalLine();
     int i, j;
     for (i = 0; i < height; i++) {
@@ -166,6 +295,13 @@ void Nonogram::print() {
             }
         }
         cout << " " << '+';
+        if (!autoCount) {
+            if (checkLineValue(i, 'h')) {
+                cout << " " << 'V';
+            } else {
+                cout << "  ";
+            }
+        }
         j = 0;
         while (horizontalValues[i][j] > 0) {
             cout << " " << horizontalValues[i][j];
@@ -174,15 +310,26 @@ void Nonogram::print() {
         cout << endl;
     }
     printHorizontalLine();
+    if (!autoCount) {
+        cout << ' ';
+        for (i = 0; i < width; i++) {
+            if (checkLineValue(i, 'v')) {
+                cout << " V";
+            } else {
+                cout << "  ";
+            }
+        }
+        cout << endl;
+    }
     for (i = 0; i < height; i++) {
         if (!emptyLine(i)) {
-            cout << " ";
+            cout << ' ';
             for (j = 0; j < width; j++) {
-                if (verticalValues[i][j] != 0) {
-                    cout << " " << verticalValues[i][j];
+                if (verticalValues[j][i] != 0) {
+                    cout << ' ' << verticalValues[j][i];
                 } else {
-                    if (verticalValues[i][j] == 0) {
-                        cout << " ";
+                    if (verticalValues[j][i] == 0) {
+                        cout << "  ";
                     }
                 }
             }
@@ -222,7 +369,9 @@ void Nonogram::toggle() {
     } else {
         grid[cursor.getY()][cursor.getX()] = true;
     }
-    countValues();
+    if (autoCount) {
+        countValues();
+    }
 }
 
 int Nonogram::getRandomNumber() {
@@ -238,8 +387,8 @@ void Nonogram::changePercentage() {
 
 void Nonogram::fillRandomly() {
     int number;
-    for (int i = 0; i < width; i++) {
-        for (int j = 0; j < height; j++) {
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
             number = getRandomNumber();
             if (number < percentage) {
                 grid[i][j] = true;
@@ -258,8 +407,6 @@ void Nonogram::resetValues() {
             horizontalValues[i][j] = 0;
         }
     }
-    //int verticalValues[maxDimension][maxDimension / 2];
-    //int horizontalValues[maxDimension / 2][maxDimension];
     for (i = 0; i < maxDimension; i++) {
         for (j = 0; j < maxDimension; j++) {
             verticalValues[i][j] = 0;
@@ -268,28 +415,32 @@ void Nonogram::resetValues() {
 }
 
 void Nonogram::clean() {
-    int i, j;
-    for (i = 0; i < width; i++) {
-        for (j = 0; j < height; j++) {
+    for (int i = 0; i < width; i++) {
+        for (int j = 0; j < height; j++) {
             grid[i][j] = false;
         }
     }
+    autoCount = true;
 }
 
 void Nonogram::submenu(char selection) {
     while (selection != 'b') {
-        cout << "[S]change size | [P]change percentage | [M]back to mainmenu" << endl;
+        cout << "[S]change size | [P]change percentage | [M]back to mainmenu | [I]import | [E]export" << endl;
         cin >> selection;
-
-        switch (selection) {
+        switch (char(tolower(selection))) {
             case 's':
                 changeSize();
                 break;
             case 'p':
                 changePercentage();
                 break;
+            case 'r':
+                readFile();
+                break;
             case 'm':
                 return;
+            case 'e':
+                writeFile();
         }
     }
 }
@@ -299,7 +450,7 @@ void mainMenu() {
     Nonogram nono;
     nono.clean();
     nono.resetValues();
-    while (selection != 'q') {
+    while (selection != 'q' || selection != 'Q') {
         cout << "      _   __" << endl;
         cout << "     / | / /___  ____  ____  ____  _________  ____ ___" << endl;
         cout << "    /  |/ / __ \\/ __ \\/ __ \\/ __ `/ ___/ __ `/ __ `__ \\ " << endl;
@@ -311,7 +462,7 @@ void mainMenu() {
         cout << "[C]clean | [R]fill randomly | [M]more options | [Q]quit" << endl;
         cin >> selection;
 
-        switch (selection) {
+        switch (char(tolower(selection))) {
             case 'm':
                 nono.submenu(selection);
                 break;
